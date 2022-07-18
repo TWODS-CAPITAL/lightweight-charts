@@ -164,9 +164,9 @@ export interface PriceScaleOptions {
 	/**
 	 * Draw small horizontal line on price axis labels.
 	 *
-	 * @defaultValue `true`
+	 * @defaultValue `false`
 	 */
-	drawTicks: boolean;
+	ticksVisible: boolean;
 }
 
 interface RangeCache {

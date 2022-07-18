@@ -104,7 +104,7 @@ export class Series<T extends SeriesType = SeriesType> extends PriceDataSource i
 	private readonly _baseHorizontalLineView: SeriesHorizontalBaseLinePaneView = new SeriesHorizontalBaseLinePaneView(this);
 	private _paneView!: IUpdatablePaneView;
 	private readonly _lastPriceAnimationPaneView: SeriesLastPriceAnimationPaneView | null = null;
-	private _barColorerCache: SeriesBarColorer | null = null;
+	private _barColorerCache: SeriesBarColorer<T> | null = null;
 	private readonly _options: SeriesOptionsInternal<T>;
 	private _markers: readonly SeriesMarker<TimePoint>[] = [];
 	private _indexedMarkers: InternalSeriesMarker<TimePointIndex>[] = [];
@@ -197,7 +197,7 @@ export class Series<T extends SeriesType = SeriesType> extends PriceDataSource i
 		};
 	}
 
-	public barColorer(): SeriesBarColorer {
+	public barColorer(): SeriesBarColorer<T> {
 		if (this._barColorerCache !== null) {
 			return this._barColorerCache;
 		}
@@ -371,15 +371,20 @@ export class Series<T extends SeriesType = SeriesType> extends PriceDataSource i
 		res.push(
 			this._paneView,
 			this._priceLineView,
-			this._panePriceAxisView,
 			this._markersPaneView
 		);
 
-		for (const customPriceLine of this._customPriceLines) {
-			res.push(...customPriceLine.paneViews());
-		}
+		const priceLineViews = this._customPriceLines.map((line: CustomPriceLine) => line.paneView());
+		res.push(...priceLineViews);
 
 		return res;
+	}
+
+	public override labelPaneViews(pane?: Pane): readonly IPaneView[] {
+		return [
+			this._panePriceAxisView,
+			...this._customPriceLines.map((line: CustomPriceLine) => line.labelPaneView()),
+		];
 	}
 
 	public override priceAxisViews(pane: Pane, priceScale: PriceScale): readonly IPriceAxisView[] {

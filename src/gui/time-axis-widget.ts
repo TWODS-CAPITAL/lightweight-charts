@@ -21,7 +21,7 @@ import { PriceAxisStub, PriceAxisStubParams } from './price-axis-stub';
 
 const enum Constants {
 	BorderSize = 1,
-	TickLength = 3,
+	TickLength = 5,
 }
 
 const enum CursorType {
@@ -251,7 +251,8 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 			rendererOptions.tickLength +
 			rendererOptions.fontSize +
 			rendererOptions.paddingTop +
-			rendererOptions.paddingBottom
+			rendererOptions.paddingBottom +
+			rendererOptions.labelBottomOffset
 		);
 	}
 
@@ -314,7 +315,8 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 	}
 
 	private _drawTickMarks(ctx: CanvasRenderingContext2D, pixelRatio: number): void {
-		const tickMarks = this._chart.model().timeScale().marks();
+		const timeScale = this._chart.model().timeScale();
+		const tickMarks = timeScale.marks();
 
 		if (!tickMarks || tickMarks.length === 0) {
 			return;
@@ -337,23 +339,23 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 			rendererOptions.borderSize +
 			rendererOptions.tickLength +
 			rendererOptions.paddingTop +
-			rendererOptions.fontSize -
-			rendererOptions.baselineOffset
+			rendererOptions.fontSize / 2
 		);
 
 		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
 		ctx.fillStyle = this._lineColor();
 
-		const borderSize = Math.floor(this._getRendererOptions().borderSize * pixelRatio);
 		const tickWidth = Math.max(1, Math.floor(pixelRatio));
 		const tickOffset = Math.floor(pixelRatio * 0.5);
 
-		if (this._chart.model().timeScale().options().borderVisible) {
+		const options = timeScale.options();
+		if (options.borderVisible && options.ticksVisible) {
 			ctx.beginPath();
 			const tickLen = Math.round(rendererOptions.tickLength * pixelRatio);
 			for (let index = tickMarks.length; index--;) {
 				const x = Math.round(tickMarks[index].coord * pixelRatio);
-				ctx.rect(x - tickOffset, borderSize, tickWidth, tickLen);
+				ctx.rect(x - tickOffset, 0, tickWidth, tickLen);
 			}
 
 			ctx.fill();
@@ -439,6 +441,7 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 				fontSize: NaN,
 				font: '',
 				widthCache: new TextWidthCache(),
+				labelBottomOffset: 0,
 			};
 		}
 
@@ -449,10 +452,11 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 			const fontSize = this._fontSize();
 			rendererOptions.fontSize = fontSize;
 			rendererOptions.font = newFont;
-			rendererOptions.paddingTop = Math.ceil(fontSize / 2.5);
-			rendererOptions.paddingBottom = rendererOptions.paddingTop;
-			rendererOptions.paddingHorizontal = Math.ceil(fontSize / 2);
-			rendererOptions.baselineOffset = Math.round(this._fontSize() / 5);
+			rendererOptions.paddingTop = 3 * fontSize / 12;
+			rendererOptions.paddingBottom = 3 * fontSize / 12;
+			rendererOptions.paddingHorizontal = 9 * fontSize / 12;
+			rendererOptions.baselineOffset = 0;
+			rendererOptions.labelBottomOffset = 4 * fontSize / 12;
 			rendererOptions.widthCache.reset();
 		}
 

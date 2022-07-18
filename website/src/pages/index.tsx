@@ -125,6 +125,9 @@ function HeroChart(): JSX.Element {
 
 				const { width, height } = container.getBoundingClientRect();
 				chart.resize(width, height);
+
+				// TODO: remove this after releasing the new version (fixed in v4.0.0)
+				// and use lockVisibleTimeRangeOnResize time scale option instead
 				chart.timeScale().setVisibleLogicalRange(visibleLogicalRange);
 			};
 
@@ -203,7 +206,7 @@ function Index(): JSX.Element {
 				</div>
 				<div className={[styles.SmallCard, styles.SmallCard2].join(' ')}>
 					<Paperplane />
-					<h3>Ultra lightweight - just {siteConfig.customFields?.bundleSize} Kb</h3>
+					<h3>{`Ultra lightweight - just ${siteConfig.customFields?.bundleSize} Kb`}</h3>
 					<p>HTML5 Canvas technology no larger than a standard GIF file.</p>
 				</div>
 				<div className={[styles.SmallCard, styles.SmallCard3].join(' ')}>

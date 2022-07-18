@@ -124,6 +124,14 @@ const commonDocusaurusPluginTypedocConfig = {
 	// which would result in the title of our generated index page being 'undefined'.
 	name: 'lightweight-charts',
 	sort: ['source-order'],
+
+	// let's disable pagination for API Reference pages since it makes almost no sense there
+	frontmatter: {
+		// eslint-disable-next-line camelcase
+		pagination_next: null,
+		// eslint-disable-next-line camelcase
+		pagination_prev: null,
+	},
 };
 
 /** @type {(version: string) => import('@docusaurus/types').PluginModule} */
@@ -295,7 +303,7 @@ async function getConfig() {
 				algolia: {
 					appId: '7Q5A441YPA',
 					// Public API key: it is safe to commit it
-					apiKey: 'b6417716804e66012544fd5904e208c8',
+					apiKey: 'c8a8aaeb7ef3fbcce40bada2196e2bcb',
 					indexName: 'lightweight-charts',
 					contextualSearch: true,
 				},
@@ -325,6 +333,7 @@ async function getConfig() {
 				}),
 			],
 			...versions.map(typedocPluginForVersion),
+			'./plugins/enhanced-codeblock',
 		],
 	};
 

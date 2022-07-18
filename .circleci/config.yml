@@ -40,17 +40,13 @@ aliases:
 
 
 executors:
-  node12-executor:
+  node16-executor:
     docker:
-      - image: circleci/node:12
+      - image: circleci/node:16
 
-  node12-browsers-executor:
+  node16-browsers-executor:
     docker:
-      - image: circleci/node:12-browsers
-
-  node14-executor:
-    docker:
-      - image: cimg/node:14.18
+      - image: circleci/node:16-browsers
 
 commands:
   checkout-with-deps:
@@ -78,7 +74,10 @@ commands:
             echo 'export TESTS_REPORT_FILE="test-results/graphics/results.xml"' >> $BASH_ENV
             echo 'export DEVICE_PIXEL_RATIO=<< parameters.devicePixelRatio >>' >> $BASH_ENV
             echo 'export PRODUCTION_BUILD=<< parameters.productionBuild >>' >> $BASH_ENV
-      - run: scripts/run-graphics-tests.sh
+      - run:
+          command: scripts/run-graphics-tests.sh
+          no_output_timeout: 20m
+
       - store_test_results:
           path: test-results/
       - store_artifacts:
@@ -88,27 +87,27 @@ commands:
 
 jobs:
   install-deps:
-    executor: node12-executor
+    executor: node16-executor
     steps:
       - checkout-with-deps
       - run: npm install
       - save_cache: *save-node-modules-cache
 
   install-deps-website:
-    executor: node12-executor
+    executor: node16-executor
     steps:
       - checkout-with-deps
       - run: cd website && npm install
       - save_cache: *save-node-modules-cache-website
 
   build:
-    executor: node12-executor
+    executor: node16-executor
     steps:
       - checkout-with-deps
+      - run: npm run build:prod
       # make sure that the project is compiled successfully with composite projects
       # so we don't have cyclic deps between projects and wrong imports
       - run: npm run tsc-verify
-      - run: npm run build:prod
       - persist_to_workspace:
           root: ./
           paths:
@@ -116,25 +115,27 @@ jobs:
             - dist
 
   no-crlf:
-    executor: node12-executor
+    executor: node16-executor
     steps:
       - checkout
       - run: scripts/no-crlf.sh
 
   trailing-lf:
-    executor: node12-executor
+    executor: node16-executor
     steps:
       - checkout
       - run: scripts/trailing-newlines.sh
 
   lint-eslint:
-    executor: node12-executor
+    executor: node16-executor
     steps:
       - checkout-with-deps
+      - attach_workspace:
+          at: ./
       - run: npm run lint:eslint
 
   lint-dts:
-    executor: node12-executor
+    executor: node16-executor
     steps:
       - checkout-with-deps
       - attach_workspace:
@@ -143,13 +144,13 @@ jobs:
       - run: npm run check-dts-docs
 
   lint-markdown:
-    executor: node12-executor
+    executor: node16-executor
     steps:
       - checkout-with-deps
       - run: npm run lint:md
 
   unittests:
-    executor: node12-executor
+    executor: node16-executor
     environment:
       TESTS_REPORT_FILE: "test-results/unittests/results.xml"
     steps:
@@ -159,7 +160,7 @@ jobs:
           path: test-results/
 
   dts-changes:
-    executor: node12-executor
+    executor: node16-executor
     steps:
       - checkout-with-deps
       - run: scripts/check-dts-changes.sh ./dts-changes $(git merge-base origin/master HEAD) $(git rev-parse HEAD)
@@ -168,25 +169,25 @@ jobs:
           when: on_fail
 
   graphics-tests-dpr1_0:
-    executor: node12-browsers-executor
+    executor: node16-browsers-executor
     steps:
       - run-graphics-tests:
           devicePixelRatio: "1.0"
 
   graphics-tests-dpr1_5:
-    executor: node12-browsers-executor
+    executor: node16-browsers-executor
     steps:
       - run-graphics-tests:
           devicePixelRatio: "1.5"
 
   graphics-tests-dpr2_0:
-    executor: node12-browsers-executor
+    executor: node16-browsers-executor
     steps:
       - run-graphics-tests:
           devicePixelRatio: "2.0"
 
   graphics-tests-dpr2_0-prod:
-    executor: node12-browsers-executor
+    executor: node16-browsers-executor
     steps:
       - run-graphics-tests:
           devicePixelRatio: "2.0"
@@ -194,7 +195,7 @@ jobs:
 
 
   memleaks-tests:
-    executor: node12-browsers-executor
+    executor: node16-browsers-executor
     environment:
       NO_SANDBOX: "true"
       TESTS_REPORT_FILE: "test-results/memleaks/results.xml"
@@ -207,7 +208,7 @@ jobs:
           path: test-results/
 
   coverage:
-    executor: node12-browsers-executor
+    executor: node16-browsers-executor
     environment:
       NO_SANDBOX: "true"
       TESTS_REPORT_FILE: "test-results/coverage/results.xml"
@@ -220,7 +221,7 @@ jobs:
           path: test-results/
 
   size-limit:
-    executor: node12-executor
+    executor: node16-executor
     steps:
       - checkout-with-deps
       - attach_workspace:
@@ -231,11 +232,10 @@ jobs:
       - run: npm run size-limit
 
   build-docusaurus-website:
-    executor: node14-executor
+    executor: node16-executor
     steps:
       - checkout-with-deps
-      - run: npm run tsc
-      - run: npm run bundle-dts
+      - run: npm run build:prod
       - run:
           name: "Install dependencies and build website"
           command: |
@@ -252,7 +252,7 @@ jobs:
             - website
 
   deploy-docusaurus-website:
-    executor: node14-executor
+    executor: node16-executor
     environment:
       USE_SSH: "true"
       # We should be able to remove GIT_USER when we have upgraded to a Docusaurus version > 2.0.0-beta.9
@@ -291,10 +291,6 @@ workflows:
           filters: *default-filters
 
       - build:
-          filters: *default-filters
-          requires:
-            - install-deps
-      - lint-eslint:
           filters: *default-filters
           requires:
             - install-deps
@@ -343,13 +339,10 @@ workflows:
           filters: *default-filters
           requires:
             - build
-
-  website:
-    jobs:
-      - install-deps:
+      - lint-eslint:
           filters: *default-filters
-      - install-deps-website:
-          filters: *default-filters
+          requires:
+            - build
       - build-docusaurus-website:
           filters: *default-filters
           requires:
